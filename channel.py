@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger("TwitchDrops")
-watch_logger = logging.getLogger("TwitchDrops.watch")
 
 
 class Stream:
@@ -289,8 +288,9 @@ class Channel:
         SETTINGS_PATTERN: str = (
             r'src="(https://[\w.]+/config/settings\.[0-9a-f]{32}\.js)"'
         )
+        # NOTE: "beacon" appears in the file first, so it's the most likely one to be matched.
         SPADE_PATTERN: str = (
-            r'"beacon_?url": ?"(https://video-edge-[.\w\-/]+\.ts(?:\?allow_stream=true)?)"'
+            r'"(?:beacon|spade)_?url": ?"(https://[.\w\-/]+(?:\.ts(?:\?allow_stream=true)?|/track))"'
         )
         async with self._twitch.request("GET", self.url) as response1:
             streamer_html: str = await response1.text(encoding="utf8")
@@ -450,7 +450,7 @@ class Channel:
             if isinstance(available_json, list):
                 available_json = available_json[0]
             if "error" in available_json:
-                watch_logger.error(f"Send watch error: \"{available_json['error']}\"")
+                logger.error(f"Send watch error: \"{available_json['error']}\"")
             return False
         # the list contains ~10-13 chunks of the stream at 2s intervals,
         # pick the last chunk URL available. Ensure it's not the end-of-stream tag,
